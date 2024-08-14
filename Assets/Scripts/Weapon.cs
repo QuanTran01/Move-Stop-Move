@@ -1,11 +1,10 @@
-﻿using UnityEngine;
-using System.Collections;
+﻿using System.Collections;
+using UnityEngine;
 
 public class Weapon : MonoBehaviour
 {
     private Rigidbody rb;
     private BoxCollider coll;
-    private Player player;
     private WeapPool weaponPool;
 
     public float attackRange = 5f;
@@ -14,8 +13,13 @@ public class Weapon : MonoBehaviour
 
     public bool equipped;
 
+    // Thêm tham chiếu đến đối tượng circle, nhân vật, và vũ khí
+    public Transform attackRangeIndicator;
+    public Transform player;  // Tham chiếu đến nhân vật
+    public Transform weaponTransform;  // Tham chiếu đến vũ khí
+
     private void Start()
-    {       
+    {
         rb = GetComponent<Rigidbody>();
         coll = GetComponent<BoxCollider>();
         weaponPool = WeapPool.Instance;
@@ -30,11 +34,6 @@ public class Weapon : MonoBehaviour
         transform.localScale = Vector3.one;
     }
 
-    private void Update()
-    {
-        CheckForEnemiesInRange();
-    }
-   
     public bool CheckForEnemiesInRange()
     {
         Collider[] enemies = Physics.OverlapSphere(transform.position, attackRange);
@@ -49,12 +48,12 @@ public class Weapon : MonoBehaviour
         return false;
     }
 
-
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.collider.CompareTag("Enemy"))
         {
-            //Destroy(collision.gameObject);
+            Destroy(collision.gameObject);
+            IncreaseSize();
         }
     }
 
@@ -66,11 +65,11 @@ public class Weapon : MonoBehaviour
 
         transform.SetParent(null);
         rb.isKinematic = false;
-        coll.isTrigger = true;
+        coll.isTrigger = false;
 
         Vector3 direction = (targetPosition - transform.position).normalized;
         rb.AddForce(direction * dropForce, ForceMode.Impulse);
-     
+
         StartCoroutine(InstantiateWeaponAfterDelay(returnDelay, targetPosition));
     }
 
@@ -95,6 +94,32 @@ public class Weapon : MonoBehaviour
         newWeaponController.transform.localScale = Vector3.one;
     }
 
+    private void IncreaseSize()
+    {
+        // Tăng kích thước circle
+        if (attackRangeIndicator != null)
+        {
+            Vector3 newScale = attackRangeIndicator.localScale * 1.1f;
+            attackRangeIndicator.localScale = newScale;
+        }
+
+        // Tăng kích thước nhân vật
+        if (player != null)
+        {
+            Vector3 newScale = player.localScale * 1.1f;
+            player.localScale = newScale;
+        }
+
+        // Tăng kích thước vũ khí
+        if (weaponTransform != null)
+        {
+            Vector3 newScale = weaponTransform.localScale * 1.1f;
+            weaponTransform.localScale = newScale;
+        }
+
+        // Tăng tầm tấn công
+        attackRange *= 1.1f;
+    }
 
     private void OnDrawGizmosSelected()
     {
