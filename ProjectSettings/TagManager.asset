@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Enemy
   - SpritePlayer
+  - Zombie
   layers:
   - Default
   - TransparentFX

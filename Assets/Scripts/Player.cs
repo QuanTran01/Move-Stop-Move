@@ -11,8 +11,11 @@ public class Player : MonoBehaviour
     private Weapon weapon;
     private Rigidbody rb;
 
+    private IncreaseSize increaseSize;
+
     private void Start()
     {
+        increaseSize=GetComponent<IncreaseSize>();
         rb = GetComponent<Rigidbody>();
         weapon = GetComponentInChildren<Weapon>();
         hasAttacked = false;
@@ -24,12 +27,27 @@ public class Player : MonoBehaviour
 
         if (weapon != null && !isMoving && !hasAttacked)
         {
-            if (weapon.CheckForEnemiesInRange())
+            Transform other = CheckForOtherInRange();
+            if (other != null)
             {
                 hasAttacked = true;
+                weapon.Attack(other.position);
                 StartCoroutine(PerformAttack());
             }
         }
+    }
+
+    private Transform CheckForOtherInRange()
+    {
+        Collider[] other = Physics.OverlapSphere(transform.position, increaseSize.attackRange);
+        foreach (Collider others in other)
+        {
+            if (others.CompareTag("Enemy") || others.CompareTag("Zombie"))
+            {
+                return others.transform;
+            }
+        }
+        return null;
     }
 
     private IEnumerator PerformAttack()
@@ -50,9 +68,25 @@ public class Player : MonoBehaviour
 
         if (isMoving)
         {
-            hasAttacked = false; 
+            hasAttacked = false;
         }
 
         anim.SetFloat("speed", movement.magnitude);
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.collider.CompareTag("Zombie"))
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    public void IncreaseSize()
+    {
+        if (increaseSize != null)
+        {
+            increaseSize.Increase();
+        }
     }
 }
