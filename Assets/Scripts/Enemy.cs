@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -15,15 +15,16 @@ public class Enemy : MonoBehaviour
     private Rigidbody rb;
     public Animator anim;
     public IncreaseSize increaseSize;
-
+    public int killCount;
     private NavMeshAgent agent;
     private float timer;
 
     private void Start()
     {
-        increaseSize=GetComponent<IncreaseSize>();
+        increaseSize = GetComponent<IncreaseSize>();
         rb = GetComponent<Rigidbody>();
         agent = GetComponent<NavMeshAgent>();
+        weapon = GetComponentInChildren<Weapon>();
         timer = wanderTimer;
     }
 
@@ -36,23 +37,25 @@ public class Enemy : MonoBehaviour
             if (other != null)
             {
                 hasAttacked = true;
-                weapon.Attack(other.position);
+                weapon.Attack(other.position, transform);
                 StartCoroutine(PerformAttack());
             }
         }
     }
+
     private Transform CheckForOtherInRange()
     {
-        Collider[] other = Physics.OverlapSphere(transform.position, increaseSize.attackRange);
-        foreach (Collider others in other)
+        Collider[] others = Physics.OverlapSphere(transform.position, increaseSize.attackRange);
+        foreach (Collider other in others)
         {
-            if (others.CompareTag("Player") || others.CompareTag("Zombie"))
+            if (other.CompareTag("Player")) //|| other.CompareTag("Enemy"))
             {
-                return others.transform;
+                return other.transform;
             }
         }
         return null;
     }
+
     private void EnemyMovement()
     {
         timer += Time.deltaTime;
@@ -63,7 +66,10 @@ public class Enemy : MonoBehaviour
             agent.SetDestination(newPos);
             timer = 0;
         }
+        isMoving = agent.velocity.magnitude > 0.0000000001f;
+        anim.SetFloat("speed", agent.velocity.magnitude);
     }
+
     private IEnumerator PerformAttack()
     {
         anim.SetTrigger("attack");
@@ -72,7 +78,6 @@ public class Enemy : MonoBehaviour
 
         anim.SetTrigger("idle");
     }
-
 
     public static Vector3 RandomNavSphere(Vector3 origin, float dist, int layermask)
     {
@@ -87,5 +92,11 @@ public class Enemy : MonoBehaviour
     {
         Gizmos.color = new Color(1, 0, 0, 0.2f);
         Gizmos.DrawSphere(transform.position, attackRange);
+    }
+
+    public bool Kill()
+    {
+        Destroy(gameObject);
+        return true;
     }
 }

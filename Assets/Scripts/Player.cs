@@ -10,12 +10,14 @@ public class Player : MonoBehaviour
     private bool hasAttacked;
     private Weapon weapon;
     private Rigidbody rb;
+    public Joystick joystick;
 
     private IncreaseSize increaseSize;
+    public int killCount;
 
     private void Start()
     {
-        increaseSize=GetComponent<IncreaseSize>();
+        increaseSize = GetComponent<IncreaseSize>();
         rb = GetComponent<Rigidbody>();
         weapon = GetComponentInChildren<Weapon>();
         hasAttacked = false;
@@ -31,7 +33,7 @@ public class Player : MonoBehaviour
             if (other != null)
             {
                 hasAttacked = true;
-                weapon.Attack(other.position);
+                weapon.Attack(other.position, transform);
                 StartCoroutine(PerformAttack());
             }
         }
@@ -39,12 +41,12 @@ public class Player : MonoBehaviour
 
     private Transform CheckForOtherInRange()
     {
-        Collider[] other = Physics.OverlapSphere(transform.position, increaseSize.attackRange);
-        foreach (Collider others in other)
+        Collider[] others = Physics.OverlapSphere(transform.position, increaseSize.attackRange);
+        foreach (Collider other in others)
         {
-            if (others.CompareTag("Enemy") || others.CompareTag("Zombie"))
+            if (other.CompareTag("Enemy") || other.CompareTag("Zombie"))
             {
-                return others.transform;
+                return other.transform;
             }
         }
         return null;
@@ -61,14 +63,20 @@ public class Player : MonoBehaviour
 
     private void PlayerMovement()
     {
-        Vector3 movement = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical")) * moveSpeed * Time.deltaTime;
+        Vector2 input = joystick.InputVector;
+        Vector3 movement = new Vector3(input.x, 0, input.y) * moveSpeed * Time.deltaTime;
         rb.MovePosition(transform.position + movement);
 
-        isMoving = movement.magnitude > 0.000000000001f;
+        isMoving = movement.magnitude > 0.0000000001f;
 
         if (isMoving)
         {
             hasAttacked = false;
+            if (movement != Vector3.zero)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(movement.normalized);
+                rb.MoveRotation(Quaternion.Slerp(rb.rotation, targetRotation, Time.deltaTime * moveSpeed));
+            }
         }
 
         anim.SetFloat("speed", movement.magnitude);
@@ -80,6 +88,12 @@ public class Player : MonoBehaviour
         {
             Destroy(gameObject);
         }
+    }
+
+    public bool Kill()
+    {
+        Destroy(gameObject);
+        return true;
     }
 
     public void IncreaseSize()

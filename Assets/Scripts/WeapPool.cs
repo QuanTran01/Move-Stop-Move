@@ -2,20 +2,25 @@
 
 public class WeapPool : MonoBehaviour
 {
-    public static WeapPool Instance { get; private set; }
+    public static WeapPool playerInstance;
     public GameObject weaponUse;
     public Transform weapContainer;
 
+    public bool isPlayerPool;
+
     private void Awake()
     {
-        if (Instance == null)
+        if (isPlayerPool)
         {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
+            if (playerInstance == null)
+            {
+                playerInstance = this;
+                DontDestroyOnLoad(gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
     }
 

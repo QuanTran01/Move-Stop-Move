@@ -5,20 +5,22 @@ public class Weapon : MonoBehaviour
 {
     private Rigidbody rb;
     private BoxCollider coll;
-    private WeapPool weaponPool;
+    public WeapPool weaponPool;
 
     public float attackRange = 5f;
     public float dropForce = 20f;
     public float returnDelay = 2f;
 
     public bool equipped;
-
     public IncreaseSize increase;
+
+    public Transform owner;
+
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
         coll = GetComponent<BoxCollider>();
-        weaponPool = WeapPool.Instance;
+
         equipped = true;
         rb.isKinematic = true;
         coll.isTrigger = true;
@@ -32,18 +34,64 @@ public class Weapon : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (collision.collider.CompareTag("Enemy"))
+        if (collision.collider.CompareTag("Enemy") || collision.collider.CompareTag("Player"))
         {
-            Destroy(collision.gameObject);
-            increase.Increase();
+            if (collision.transform != owner)
+            {
+                bool isKilled = false;
+
+                if (collision.collider.CompareTag("Enemy"))
+                {
+                    Enemy enemy = collision.gameObject.GetComponent<Enemy>();
+                    if (enemy != null && enemy.Kill())
+                    {
+                        isKilled = true;
+                    }
+                }
+                else if (collision.collider.CompareTag("Player"))
+                {
+                    Player player = collision.gameObject.GetComponent<Player>();
+                    if (player != null && player.Kill())
+                    {
+                        isKilled = true;
+                    }
+                }
+
+                if (isKilled)
+                {
+                    if (owner.CompareTag("Player"))
+                    {
+                        Player playerOwner = owner.GetComponent<Player>();
+                        if (playerOwner != null)
+                        {
+                            playerOwner.killCount++;
+                            KillCount.Instance.IncreaseKill(1, true);
+                        }
+                    }
+                    else if (owner.CompareTag("Enemy"))
+                    {
+                        Enemy enemyOwner = owner.GetComponent<Enemy>();
+                        if (enemyOwner != null)
+                        {
+                            enemyOwner.killCount++;
+                            KillCount.Instance.IncreaseKill(1, false);
+                        }
+                    }
+                }
+
+
+                increase.Increase();
+                Destroy(collision.gameObject);
+            }
         }
     }
 
-    public void Attack(Vector3 targetPosition)
+    public void Attack(Vector3 targetPosition, Transform weaponOwner)
     {
         if (!equipped) return;
 
         equipped = false;
+        owner = weaponOwner;
 
         transform.SetParent(null);
         rb.isKinematic = false;
