@@ -5,15 +5,16 @@ public class Player : MonoBehaviour
 {
     public float moveSpeed = 10f;
     public Animator anim;
-
     private bool isMoving;
     private bool hasAttacked;
     private Weapon weapon;
     private Rigidbody rb;
-    public Joystick joystick;
-
+    public FloatingJoystick joystick; // Changed to FloatingJoystick
     private IncreaseSize increaseSize;
+    public KillCount killCountUI;
     public int killCount;
+    private bool isAttacking;
+    private Collider playerCollider;
 
     private void Start()
     {
@@ -21,11 +22,21 @@ public class Player : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         weapon = GetComponentInChildren<Weapon>();
         hasAttacked = false;
+        if (killCountUI != null)
+        {
+            killCountUI.currentKillText.text = killCount.ToString();
+        }
+        playerCollider = GetComponent<Collider>();
     }
 
     private void FixedUpdate()
     {
         PlayerMovement();
+
+        if (isMoving && !anim.GetCurrentAnimatorStateInfo(0).IsName("run"))
+        {
+            anim.SetTrigger("run");
+        }
 
         if (weapon != null && !isMoving && !hasAttacked)
         {
@@ -33,10 +44,31 @@ public class Player : MonoBehaviour
             if (other != null)
             {
                 hasAttacked = true;
-                weapon.Attack(other.position, transform);
-                StartCoroutine(PerformAttack());
+                isAttacking = true;
+                StartCoroutine(AttackAfterAnimation(other.position, transform));
             }
         }
+    }
+
+    private IEnumerator AttackAfterAnimation(Vector3 targetPosition, Transform weaponOwner)
+    {
+        anim.SetTrigger("attack");
+
+        yield return new WaitForSeconds(0.2f);
+
+        weapon.Attack(targetPosition, weaponOwner);
+
+        if (isMoving)
+        {
+            anim.SetTrigger("run");
+        }
+        else
+        {
+            yield return new WaitForSeconds(anim.GetCurrentAnimatorStateInfo(0).length);
+            anim.SetTrigger("idle");
+        }
+
+        isAttacking = false;
     }
 
     private Transform CheckForOtherInRange()
@@ -52,18 +84,9 @@ public class Player : MonoBehaviour
         return null;
     }
 
-    private IEnumerator PerformAttack()
-    {
-        anim.SetTrigger("attack");
-
-        yield return new WaitForSeconds(anim.GetCurrentAnimatorStateInfo(0).length);
-
-        anim.SetTrigger("idle");
-    }
-
     private void PlayerMovement()
     {
-        Vector2 input = joystick.InputVector;
+        Vector2 input = new Vector2(joystick.Horizontal, joystick.Veritcal);
         Vector3 movement = new Vector3(input.x, 0, input.y) * moveSpeed * Time.deltaTime;
         rb.MovePosition(transform.position + movement);
 
@@ -84,16 +107,37 @@ public class Player : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
+        if (playerCollider == null || !playerCollider.enabled)
+        {
+            return;
+        }
+
         if (collision.collider.CompareTag("Zombie"))
         {
             Destroy(gameObject);
         }
     }
 
-    public bool Kill()
+    public bool Die()
     {
-        Destroy(gameObject);
+        rb.velocity = Vector3.zero;
+        rb.isKinematic = true;
+        anim.SetTrigger("dead");
+
+        if (playerCollider != null)
+        {
+            playerCollider.enabled = false;
+        }
+
+        this.enabled = false;
+
         return true;
+    }
+
+    public void IncreaseKill()
+    {
+        killCount++;
+        killCountUI.IncreaseKill(1);
     }
 
     public void IncreaseSize()

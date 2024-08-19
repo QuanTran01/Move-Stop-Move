@@ -7,7 +7,6 @@ public class Weapon : MonoBehaviour
     private BoxCollider coll;
     public WeapPool weaponPool;
 
-    public float attackRange = 5f;
     public float dropForce = 20f;
     public float returnDelay = 2f;
 
@@ -15,6 +14,8 @@ public class Weapon : MonoBehaviour
     public IncreaseSize increase;
 
     public Transform owner;
+    private Animator ownerAnimator;
+    public float rotationSpeed = 500f;
 
     private void Start()
     {
@@ -43,7 +44,7 @@ public class Weapon : MonoBehaviour
                 if (collision.collider.CompareTag("Enemy"))
                 {
                     Enemy enemy = collision.gameObject.GetComponent<Enemy>();
-                    if (enemy != null && enemy.Kill())
+                    if (enemy != null && enemy.Die())
                     {
                         isKilled = true;
                     }
@@ -51,7 +52,7 @@ public class Weapon : MonoBehaviour
                 else if (collision.collider.CompareTag("Player"))
                 {
                     Player player = collision.gameObject.GetComponent<Player>();
-                    if (player != null && player.Kill())
+                    if (player != null && player.Die())
                     {
                         isKilled = true;
                     }
@@ -65,7 +66,7 @@ public class Weapon : MonoBehaviour
                         if (playerOwner != null)
                         {
                             playerOwner.killCount++;
-                            KillCount.Instance.IncreaseKill(1, true);
+                            playerOwner.killCountUI.IncreaseKill(1);
                         }
                     }
                     else if (owner.CompareTag("Enemy"))
@@ -74,16 +75,29 @@ public class Weapon : MonoBehaviour
                         if (enemyOwner != null)
                         {
                             enemyOwner.killCount++;
-                            KillCount.Instance.IncreaseKill(1, false);
+                            enemyOwner.killCountUI.IncreaseKill(1);
                         }
                     }
+
+                    ReturnToContainer();
                 }
-
-
                 increase.Increase();
-                Destroy(collision.gameObject);
+                //Destroy(collision.gameObject);
             }
         }
+    }
+
+    private void ReturnToContainer()
+    {
+        rb.isKinematic = true;
+        coll.isTrigger = true;
+
+        transform.SetParent(weaponPool.weapContainer);
+        transform.localPosition = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
+        transform.localScale = Vector3.one;
+
+        equipped = true;
     }
 
     public void Attack(Vector3 targetPosition, Transform weaponOwner)
@@ -92,16 +106,72 @@ public class Weapon : MonoBehaviour
 
         equipped = false;
         owner = weaponOwner;
+        ownerAnimator = owner.GetComponent<Animator>();
+
+        StartCoroutine(PerformAttackAfterAnimation(targetPosition));
+    }
+
+    private IEnumerator PerformAttackAfterAnimation(Vector3 targetPosition)
+    {
+        float animationDuration = GetAttackAnimationDuration();
+        yield return new WaitForSeconds(animationDuration);
+
+        if (owner == null)
+        {
+            Destroy(gameObject);
+            yield break;
+        }
 
         transform.SetParent(null);
         rb.isKinematic = false;
         coll.isTrigger = false;
 
+        Physics.IgnoreCollision(coll, owner.GetComponent<Collider>(), true);
+
         Vector3 direction = (targetPosition - transform.position).normalized;
         rb.AddForce(direction * dropForce, ForceMode.Impulse);
 
-        StartCoroutine(InstantiateWeaponAfterDelay(returnDelay, targetPosition));
+        StartCoroutine(TrackWeapon());
     }
+
+
+
+    private float GetAttackAnimationDuration()
+    {
+        if (ownerAnimator != null)
+        {
+            AnimationClip[] clips = ownerAnimator.runtimeAnimatorController.animationClips;
+            foreach (var clip in clips)
+            {
+                if (clip.name == "Attack")
+                {
+                    return clip.length;
+                }
+            }
+        }
+        return 0f;
+    }
+
+    private IEnumerator TrackWeapon()
+    {
+        while (!equipped)
+        {
+            float distance = Vector3.Distance(transform.position, owner.position);
+            if (distance > increase.attackRange)
+            {
+                ReturnToContainer();
+                yield break;
+            }
+
+            Vector3 flatUp = Vector3.up; 
+            transform.up = flatUp;
+
+            transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime*100000f, Space.World);
+
+            yield return null;
+        }
+    }
+
 
     private IEnumerator InstantiateWeaponAfterDelay(float delay, Vector3 targetPosition)
     {

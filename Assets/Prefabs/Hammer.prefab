@@ -49,10 +49,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c21f9e7415d6fd4888b59110b8ff2e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  attackRange: 5
-  dropForce: 20
+  weaponPool: {fileID: 0}
+  dropForce: 13
   returnDelay: 1
   equipped: 0
+  increase: {fileID: 0}
+  owner: {fileID: 0}
+  rotationSpeed: 8
 --- !u!33 &3679902453952568334
 MeshFilter:
   m_ObjectHideFlags: 0

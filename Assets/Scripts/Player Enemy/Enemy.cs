@@ -4,20 +4,25 @@ using UnityEngine.AI;
 
 public class Enemy : MonoBehaviour
 {
-    public float moveSpeed = 10f;
     public float attackRange = 5f;
     public float wanderRadius = 10f;
     public float wanderTimer = 5f;
 
     private bool isMoving;
-    private bool hasAttacked;
+    public bool hasAttacked;
     private Weapon weapon;
     private Rigidbody rb;
     public Animator anim;
     public IncreaseSize increaseSize;
-    public int killCount;
     private NavMeshAgent agent;
     private float timer;
+    private bool isDead = false;
+    private Collider enemyCollider;
+
+    public KillCount killCountUI;
+    public int killCount;
+
+    public static System.Action<Transform> OnDeath;
 
     private void Start()
     {
@@ -26,19 +31,30 @@ public class Enemy : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         weapon = GetComponentInChildren<Weapon>();
         timer = wanderTimer;
+
+        if (killCountUI != null)
+        {
+            killCountUI.currentKillText.text = killCount.ToString();
+        }
+
+        hasAttacked = false;
+        enemyCollider = GetComponent<Collider>();
     }
 
     private void Update()
     {
-        EnemyMovement();
-        if (weapon != null && !isMoving && !hasAttacked)
+        if (!isDead)
         {
-            Transform other = CheckForOtherInRange();
-            if (other != null)
+            EnemyMovement();
+            if (weapon != null && !isMoving && !hasAttacked)
             {
-                hasAttacked = true;
-                weapon.Attack(other.position, transform);
-                StartCoroutine(PerformAttack());
+                Transform other = CheckForOtherInRange();
+                if (other != null)
+                {
+                    hasAttacked = true;
+                    weapon.Attack(other.position, transform);
+                    StartCoroutine(PerformAttack());
+                }
             }
         }
     }
@@ -48,7 +64,7 @@ public class Enemy : MonoBehaviour
         Collider[] others = Physics.OverlapSphere(transform.position, increaseSize.attackRange);
         foreach (Collider other in others)
         {
-            if (other.CompareTag("Player")) //|| other.CompareTag("Enemy"))
+            if (other.CompareTag("Player"))// || other.CompareTag("Enemy"))
             {
                 return other.transform;
             }
@@ -68,6 +84,10 @@ public class Enemy : MonoBehaviour
         }
         isMoving = agent.velocity.magnitude > 0.0000000001f;
         anim.SetFloat("speed", agent.velocity.magnitude);
+        if (isMoving)
+        {
+            hasAttacked = false;
+        }
     }
 
     private IEnumerator PerformAttack()
@@ -94,9 +114,44 @@ public class Enemy : MonoBehaviour
         Gizmos.DrawSphere(transform.position, attackRange);
     }
 
-    public bool Kill()
+    public bool Die()
     {
-        Destroy(gameObject);
+        if (isDead) return false;
+        rb.velocity = Vector3.zero;
+        rb.isKinematic = true;
+        anim.SetTrigger("dead");
+        isDead = true;
+        agent.isStopped = true;
+        agent.velocity = Vector3.zero;
+
+        OnDeath?.Invoke(transform);
+
+        if (enemyCollider != null)
+        {
+            enemyCollider.enabled = false;
+        }
+
+        StartCoroutine(Dead());
         return true;
+    }
+
+    private IEnumerator Dead()
+    {
+        yield return new WaitForSeconds(3f);
+        Destroy(gameObject);
+    }
+
+    public void IncreaseSize()
+    {
+        if (increaseSize != null)
+        {
+            increaseSize.Increase();
+        }
+    }
+
+    public void IncreaseKill()
+    {
+        killCount++;
+        killCountUI.IncreaseKill(1);
     }
 }

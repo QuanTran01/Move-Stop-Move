@@ -1050,8 +1050,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ba64672f2bf55a74bad1bb155f85a6aa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  weaponInHierarchy: {fileID: 0}
+  weaponUse: {fileID: 0}
   weapContainer: {fileID: 8437613106390057350}
+  isPlayerPool: 0
 --- !u!1 &3266114465693391110
 GameObject:
   m_ObjectHideFlags: 0
@@ -1324,10 +1325,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c21f9e7415d6fd4888b59110b8ff2e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  attackRange: 5
+  weaponPool: {fileID: 0}
   dropForce: 20
   returnDelay: 1
   equipped: 0
+  increase: {fileID: 0}
+  owner: {fileID: 0}
 --- !u!33 &8575556560268900277
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -1440,7 +1443,7 @@ GameObject:
   - component: {fileID: 1601985745237494652}
   - component: {fileID: 1608225408911992261}
   - component: {fileID: 2679913459523362178}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1478,6 +1481,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 5
   anim: {fileID: 8084481454405487535}
+  joystick: {fileID: 0}
+  killCountUI: {fileID: 0}
+  killCount: 0
 --- !u!33 &1138049093555558016
 MeshFilter:
   m_ObjectHideFlags: 0
